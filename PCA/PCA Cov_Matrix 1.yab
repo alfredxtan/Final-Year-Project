@@ -1,0 +1,126 @@
+	open #1, "CovMatrix.txt", "w"
+
+	dim u(100,100), v(100,100), w(100,100), clusters(100,100), C_u(100,100), C_v(100,100), C_w(100,100), C(100,100), avg(100)
+
+
+	num_images = 50
+	dim_images = 2
+	noise = 0.1
+	a$ = "######.##########"
+
+	gosub initialize_clusters
+
+	gosub normalize_clusters
+
+	gosub calculate_covMs
+
+	gosub output_C
+
+	for i = 1 to dim_images
+	for j = 1 to dim_images
+	
+	print #1 C(i,j) using a$;
+
+	next j	
+	print #1
+	next i
+
+	close #1
+
+	end
+
+
+rem	*************************************************************
+
+	label initialize_clusters
+
+	for i = 1 to num_images
+	u(1,i) = 0.5 + N(noise): u(2,i) = 2 + N(noise)
+	v(1,i) = 2 + N(noise) : v(2,i) = 0.5 + N(noise)
+	w(1,i) = 10 + N(noise) : w(2,i) = 5 + N(noise)
+	next i
+
+	return
+
+rem	*************************************************************
+
+	label normalize_clusters
+	
+	for i = 1 to dim_images
+	avg(i) = 0 
+	for j = 1 to num_images
+
+	avg(i) = avg(i) + (u(i,j) + v(i,j) + w(i,j))
+	
+	next j
+
+	avg(i) = avg(i)/(3*num_images)
+	
+	next i
+
+	for i = 1 to dim_images
+	for j = 1 to num_images
+
+	u(i,j) = u(i,j) - avg(i) 
+	v(i,j) = v(i,j) - avg(i) 
+	w(i,j) = w(i,j) - avg(i) 
+	
+	next j
+	next i
+
+	return
+
+rem	**************************************************************
+
+	label calculate_covMs
+
+	for i = 1 to dim_images
+	for k = 1 to dim_images
+	for j = 1 to num_images
+
+	C_u(i,k) = C_u(i,k) + u(i,j)*u(k,j)
+	C_v(i,k) = C_v(i,k) + v(i,j)*v(k,j)
+	C_w(i,k) = C_w(i,k) + w(i,j)*w(k,j)
+
+	next j
+	next k
+	next i
+
+	for i = 1 to dim_images
+	for k = 1 to dim_images
+
+	C(i,k) = C_u(i,k) + C_v(i,k) + C_w(i,k)
+
+	next k
+	next i
+
+	return
+
+rem	**************************************************************
+
+	label output_C
+
+
+	print "Covariance matrix is: "
+
+	for i = 1 to dim_images
+	for k = 1 to dim_images
+
+	print C(i,k);
+	
+	next k
+	print
+	next i 
+
+	return
+
+rem	**************************************************************	
+	
+	sub N(t)
+
+	k = ran(2*t)-t
+	return k
+
+	end sub
+
+rem	*************************************************************
