@@ -1,0 +1,308 @@
+	open #1, "CovMatrix.txt", "r"
+
+	ss = 1e-3
+rem	threshold = 1e-8
+	num_images = 1
+	num_clusters = 3
+	dim_images = 2
+	a$ = "#######.#########"
+	num_eigenvectors = 0
+
+rem	make it a 2-array, the second component referring to i^th datapoint.
+	dim u(10,100), v(10,100), w(10,100), f(10), e(10), improv_e(10), eigenvec(10,10), avg(10), e1(10), e2(10), C(100,100), F(10)
+
+
+
+rem	gosub initial_data
+
+	gosub input_C
+
+	gosub initial_eigenvector
+
+100
+
+	improvflag = 0
+
+	while improvflag <= 25
+
+	gosub change_e
+
+rem	gosub output_current
+
+	wend
+
+	num_eigenvectors = num_eigenvectors + 1
+
+	gosub output_current
+
+	gosub store_eigenvector
+
+	gosub output_eigenvector
+
+	if num_eigenvectors < dim_images then
+	gosub choose_next_eigenvector
+	pause(4)
+	goto 100
+	endif
+	
+
+rem	print "Supposed to get: "
+rem	print e1(1); 
+rem	print e2(1)
+rem	print e1(2);
+rem	print e2(2)
+
+rem	print "The difference is: "
+rem	print (e1(1) - e(1))
+rem	print (e1(2) - e(2))
+
+
+	
+
+
+	end
+
+rem	***************************************
+	
+	label initial_data
+
+	u(1,1) = 0.5 : u(2,1) = 2 
+	v(1,1) = 2 : v(2,1) = 0.5
+	w(1,1) = 10 : w(2,1) = 5
+	
+	for k = 1 to dim_images
+	avg(k) = 0
+	for i = 1 to num_images
+	avg(k) = avg(k) + u(k,i) + v(k,i) + w(k,i)
+	next i
+	avg(k) = avg(k)/(3*num_images)
+	next k
+
+	for k = 1 to dim_images
+	for i = 1 to num_images
+	u(k,i) = u(k,i) - avg(k) 
+	v(k,i) = v(k,i) - avg(k) 	
+	w(k,i) = w(k,i) - avg(k)
+	next i
+	next k
+	
+	e1(1) = 1/249*(250 + sqrt(124501)): e1(2) = 1
+	le = sqrt(e1(1)^2 + e1(2)^2)
+	e1(1) = e1(1)/le : e1(2) = e1(2)/le
+
+	
+	e2(1) = 1/249*(250 - sqrt(124501)) : e2(2) = 1
+	le2 = sqrt(e2(1)^2 + e2(2)^2)
+	e2(1) = e2(1)/le2 : e2(2) = e2(2)/le2
+	return
+
+rem	***************************************
+
+	label input_C
+	
+	for i = 1 to dim_images
+	for j = 1 to dim_images
+
+	input #1 C(i,j)
+	print C(i,j)
+
+	next j
+	next i
+
+	return
+
+
+rem	***************************************
+
+	label initial_eigenvector
+
+
+	for i = 1 to dim_images
+	e(i) = ran(1)
+	next i
+
+	gosub normalize_e
+
+	print e(1)
+	print e(2)
+
+rem	input dummy
+	return
+
+rem	***************************************
+
+	label calculate_F
+	
+rem	F = e^TAe
+	
+	F = 0
+	
+	for i = 1 to dim_images
+	for j = 1 to dim_images
+
+	F = F + e(i)*C(i,j)*e(j)
+
+	next j
+	next i
+
+	return
+
+rem	***************************************
+
+	label change_e
+
+	gosub calculate_F
+	F1 = F
+
+	for i = 1 to dim_images
+	improv_e(i) = e(i)
+	next i
+
+	gosub delta_e
+	
+	gosub orthog_e	
+
+	gosub normalize_e
+
+	gosub calculate_F
+
+	F2 = F
+
+	F12 = F1 - F2
+
+	if F12 > 0 then
+
+	improvflag = improvflag + 1
+
+	for i = 1 to dim_images
+	e(i) = improv_e(i) 
+	next i
+
+	else 
+	improvflag = 0
+	
+	endif	
+
+
+	return
+
+rem	***************************************
+
+	label output_current
+
+	gosub calculate_F
+
+	print "The eigenvector is: "
+	print e(1) using a$
+	print e(2) using a$
+
+	print "F is: " 
+	print F using a$
+
+	print
+	
+
+	return
+
+
+rem	***************************************
+
+	label store_eigenvector
+
+	
+	for k = 1 to dim_images
+	eigenvec(k,num_eigenvectors) = e(k)
+	next k
+
+	return
+
+rem	***************************************
+	
+	label choose_next_eigenvector
+
+	gosub initial_eigenvector
+rem	gosub delta_e
+	
+	gosub orthog_e
+
+	gosub normalize_e
+
+
+	print "Next eigenvector: "
+	for i = 1 to dim_images
+	print e(i)
+	next i
+	
+	return
+
+
+rem	***************************************
+
+	label output_eigenvector
+
+	print "The eigenvectors are: "
+
+	for i = 1 to dim_images
+	for k = 1 to dim_images
+
+	print eigenvec(i,k);
+
+	next k
+
+	print
+
+	next i
+	
+	print
+
+	return
+
+
+rem	***************************************
+
+	label normalize_e
+
+	
+	E = 0
+	for i = 1 to dim_images
+	E = E + e(i)^2 
+	next i
+	E = sqrt(E)
+	
+	for i = 1 to dim_images
+	e(i) = e(i)/E
+	next i 
+
+
+	return
+
+rem	***************************************
+
+	label orthog_e	
+
+	for k = 1 to num_eigenvectors
+	
+	dot_product = 0
+	for i = 1 to dim_images
+	dot_product = dot_product + (e(i) * eigenvec(i,k))
+	next i
+
+	for j = 1 to dim_images
+	e(j) = e(j) - dot_product*eigenvec(j,k)
+	next j
+
+	next k
+
+	return
+
+rem	****************************************
+
+	label delta_e
+
+	for i = 1 to dim_images
+	e(i) = e(i) + ran(2*ss) - ss
+	next i
+
+	return
+
+rem	****************************************

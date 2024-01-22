@@ -1,0 +1,39 @@
+	open #1, "c_input.txt", "w"
+	open #2, "training_images.txt", "w"
+	dim c(100), count(1000)
+	numimages = 500
+	anum = 2
+
+	ransize_inner = 0.1
+	ransize_outer = 0.5
+	a$ = "##.######"
+
+
+	for k = 1 to numimages
+
+	c(0) = int(ran(anum))+1
+
+	if c(0) = 1 then 
+	d = (2*pi*ran(360))/360
+	c(1) = (1+ran(2*ransize_outer)-ransize_outer)*cos(d) + 1 
+	c(2) = (1+ran(2*ransize_outer)-ransize_outer)*sin(d) + 1
+	elseif c(0) = 2 then
+	c(1) = 1 + ran(2*ransize_inner) - ransize_inner
+	c(2) = 1 + ran(2*ransize_inner) - ransize_inner
+	endif
+
+	count(c(0)) = count(c(0)) + 1
+
+	for i = 0 to 2
+	print #1 c(i) using a$;
+	next i	
+	print #1
+
+	next k	
+
+	for i = 1 to anum
+	print #2 "number of training images for class ", i, " is,", count(i)
+	next i
+	
+	
+	close #1 : close #2

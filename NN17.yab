@@ -1,0 +1,578 @@
+
+	dim a(100),b(100),c(100)
+	dim w(100,100),v(100,100)
+	dim abias(100), bbias(100)
+	dim p(100)
+	dim vv(100,100), ww(100,100)
+	dim bbbias(100), aabias(100)
+
+
+	cnum = 2
+	bnum = 4
+	anum = 2
+
+	numimages = 500
+	ransize = 0.1
+	costfactor = 1
+
+500
+	gosub initial_weights
+
+	gosub initial_bias
+
+	gosub output_current
+
+
+	avg1 = 0 : avg2 = 0 : avg = 0
+
+
+	ss = 1
+	iterations = 0
+
+300
+	ss = ss/2
+	
+100	
+	avg2 = avg1
+	
+	improvflag = 0
+
+	gosub change_abias
+
+	gosub change_w
+
+	gosub change_bbias
+
+	gosub change_v
+
+	gosub output_current
+
+	gosub output_weights
+
+	gosub average_cost
+	
+	print "ss is: ", ss
+
+	print "numimages is: ", numimages 
+
+	print "average cost is: ", avg using "#######.############################"
+
+	avg1 = avg
+
+	print "number of pixels is: ", cnum
+
+	iterations = iterations + 1
+	print "number of iterations is: ", iterations
+
+rem	if iterations > 1 then
+rem	if (avg2 - avg1) < 1e-6 then
+rem	print "Re-randomise weights and biases"
+rem	input dummy
+rem	goto 500
+rem	endif
+rem	endif
+
+rem	if avg < 1e-1 and iterations <=30 then
+rem	goto 400
+	if iterations >30 and avg > 1e-1 then 
+	print "Re-randomise weights and biases"	
+	goto 500
+	elseif iterations = 200 then
+	goto 400 
+	endif
+
+	if improvflag = 0 then
+	print "Reducing ss"
+	pause(2)
+rem	input dummy
+	goto 300
+	else 
+rem	input dummy
+	goto 100
+	endif
+
+400
+
+rem	goto initial_config
+	
+	return
+	end
+
+rem ****************************
+
+	label initial_weights
+	
+rem	an "identity" for v and w
+
+	for i = 1 to bnum
+	for j = 1 to cnum
+	
+	if j = i then 
+	v(i,j) = 1
+	else
+	v(i,j) = 0
+	endif
+
+rem	v(i,j) = ran(10) - 5
+rem	vv(i,j) = v(i,j)
+
+
+	next j
+	next i
+
+
+	for i = 1 to anum
+	for j = 1 to bnum
+	
+	if j = i then 
+	w(i,j) = 1
+	else
+	w(i,j) = 0
+	endif
+
+rem	w(i,j) = ran(10) - 5
+rem	ww(i,j) = w(i,j)
+
+	next j
+	next i
+
+	return
+rem ****************************
+
+	label initial_bias
+	
+	for i = 1 to anum
+rem	abias(i) = ran(10) - 5
+	abias(i) = 0
+	aabias(i) = abias(i)
+	next i
+
+rem	abias(1) = 1.322 : abias(2) = -0.943
+
+	for i = 1 to bnum
+rem	bbias(i) = ran(10) - 5
+	bbias(i) = 0
+	bbbias(i) = bbias(i)
+	next i
+
+rem	bbias(1) = -1.339 : bbias(2) = 0.863
+	return
+
+rem ****************************
+
+	label input_c
+
+	for i = 0 to cnum
+	input #1 c(i)
+
+rem	print c(i);
+
+	next i
+
+rem	print
+rem	print
+rem	input dummy
+
+	return
+
+	
+rem ****************************
+
+	label compute_NN
+
+rem	compute_layer2
+	
+	for i = 1 to bnum
+	b(i) = 0
+	for j = 1 to cnum
+	b(i) = b(i) + v(i,j)*c(j)
+	next j
+	next i
+
+rem	activation_layer2
+	
+	for i = 1 to bnum
+	b(i) = b(i) + bbias(i)
+	next i
+
+	for i = 1 to bnum
+rem	b(i) = relu(b(i))
+	b(i) = sigmoid(b(i))
+	next i
+
+
+rem	compute_layer3
+	
+	for i = 1 to anum
+	a(i) = 0
+	for j = 1 to bnum
+	a(i) = a(i) + w(i,j)*b(j)
+	next j
+	next i
+
+rem	activation_layer3
+	
+	for i = 1 to anum
+	a(i) = a(i) + abias(i)
+	next i
+
+rem	softmax = 0
+	for i = 1 to anum
+rem	a(i) = relu(a(i))
+	a(i) = sigmoid(a(i))
+rem	softmax = softmax + exp(a(i))
+	next i
+rem	for i = 1 to anum
+rem	a(i) = exp(a(i))/(softmax)
+rem	next i
+
+	return
+
+rem ****************************
+
+	label average_cost
+
+	open #1, "c_input.txt", "r"
+
+	totalcost = 0
+
+	for image = 1 to numimages
+	
+	gosub input_c
+
+	gosub compute_NN
+
+	gosub calculate_cost
+
+	totalcost = totalcost + cost
+	
+	next image
+
+	avg = totalcost/numimages
+
+	close #1
+
+	return
+
+rem ****************************
+
+	label output_current
+	
+	a$ = "######.######"
+
+	open #1, "c_input.txt", "r"
+
+	for image = 1 to numimages
+
+	gosub input_c
+	
+	if (numimages - image) <= 5 then
+
+	gosub compute_NN
+
+	gosub calculate_cost
+
+	print c(0) using a$
+
+
+	for i = 1 to anum
+	print a(i) using a$;
+	next i
+	print cost using a$;
+	print:print
+
+	endif
+
+	next image
+	
+	close #1
+
+	return
+
+rem ****************************
+
+	label change_w
+
+
+	for k = 1 to anum
+	for r = 1 to bnum
+
+	gosub average_cost
+	cost1 = avg
+	
+	w(k,r) = w(k,r) + ss
+	gosub average_cost
+	cost2 = avg
+
+	w(k,r) = w(k,r) - 2*ss 
+	gosub average_cost
+	cost3 = avg
+	
+	w(k,r) = w(k,r) + ss
+
+	cost12 = cost1-cost2 : cost13 = cost1-cost3
+	
+rem	z$ = "###.############"
+rem	print k,r, cost12 using z$,cost13 using z$
+rem	input dummy
+
+	if(cost12>0) then
+	w(k,r) = w(k,r) + ss
+	improvflag = 1
+	elseif(cost13>0) then
+	w(k,r) = w(k,r) - ss
+	improvflag = 1
+	endif
+
+	
+	next r
+	next k
+	return
+
+rem ****************************
+
+	label change_v
+
+
+	for k = 1 to bnum
+	for r = 1 to cnum
+
+	gosub average_cost
+	cost1 = avg
+	
+	v(k,r) = v(k,r) + ss
+	gosub average_cost
+	cost2 = avg
+
+	v(k,r) = v(k,r) - 2*ss 
+	gosub average_cost
+	cost3 = avg
+	
+	v(k,r) = v(k,r) + ss
+
+	cost12 = cost1-cost2 : cost13 = cost1-cost3
+
+rem	z$ = "###.############"
+rem	print k,r, cost12 using z$,cost13 using z$
+rem	input dummy
+	
+	if(cost12>0) then
+	v(k,r) = v(k,r) + ss
+	improvflag = 1
+	elseif(cost13>0) then
+	v(k,r) = v(k,r) - ss
+	improvflag = 1
+	endif
+
+
+	next r
+	next k
+
+	return
+
+rem ****************************
+
+	label change_abias
+
+	for k = 1 to anum
+
+	gosub average_cost
+	cost1 = avg
+	
+	abias(k) = abias(k) + ss
+	gosub average_cost
+	cost2 = avg
+
+	abias(k) = abias(k) - 2*ss 
+	gosub average_cost
+	cost3 = avg
+	
+	abias(k) = abias(k) + ss
+
+	cost12 = cost1-cost2 : cost13 = cost1-cost3
+
+rem	z$ = "###.############"
+rem	print k, cost12 using z$,cost13 using z$
+rem	input dummy
+	
+	if(cost12>0) then
+	abias(k) = abias(k) + ss
+	improvflag = 1
+	elseif(cost13>0) then
+	abias(k) = abias(k) - ss
+	improvflag = 1
+	endif
+
+	next k
+
+	return
+
+rem ****************************
+
+	label change_bbias
+
+	for k = 1 to bnum
+
+	gosub average_cost
+	cost1 = avg
+	
+	bbias(k) = bbias(k) + ss
+	gosub average_cost
+	cost2 = avg
+
+	bbias(k) = bbias(k) - 2*ss 
+	gosub average_cost
+	cost3 = avg
+	
+	bbias(k) = bbias(k) + ss
+
+	cost12 = cost1-cost2 : cost13 = cost1-cost3
+
+rem	z$ = "###.############"
+rem	print k, cost12 using z$,cost13 using z$
+rem	input dummy
+	
+	if(cost12>0) then
+	bbias(k) = bbias(k) + ss
+	improvflag = 1
+	elseif(cost13>0) then
+	bbias(k) = bbias(k) - ss
+	improvflag = 1
+	endif
+
+
+	next k
+
+	return
+
+rem ****************************
+
+	label select_p
+		
+	for i = 1 to anum
+	if i = c(0) then
+	p(i) = 1
+	else
+	p(i) = 0
+	endif
+	next i
+
+	return
+
+rem ****************************
+
+	label calculate_cost
+
+	gosub select_p
+
+	cost = 0
+	for i = 1 to anum
+	cost = cost + (a(i) - p(i))^2
+	next i
+
+	return
+
+rem ****************************
+
+	label output_weights
+	
+	print
+	print "v is: "
+	for j = 1 to cnum
+	for i = 1 to bnum
+	print v(i,j) using "###.###";
+	next i
+	print
+	next j
+rem	print
+
+rem	print
+	print "bbias is: "
+	for i = 1 to bnum
+	print bbias(i) using "###.###";
+	next i
+	print
+rem	print
+
+rem	print
+	print "w is: "
+	for j = 1 to bnum
+	for i = 1 to anum
+	print w(i,j) using "###.###";
+	next i
+	print
+	next j
+rem	print
+
+rem	print
+	print "abias is: "
+	for i = 1 to anum
+	print abias(i) using "###.###";
+	next i
+	print
+	print
+	
+	return
+	
+rem ****************************
+	label initial_config
+
+	print
+	print "v is: "
+	for j = 1 to cnum
+	for i = 1 to bnum
+	print vv(i,j) using "###.###";
+	next i
+	print
+	next j
+rem	print
+
+rem	print
+	print "bbias is: "
+	for i = 1 to bnum
+	print bbbias(i) using "###.###";
+	next i
+	print
+rem	print
+
+rem	print
+	print "w is: "
+	for j = 1 to bnum
+	for i = 1 to anum
+	print ww(i,j) using "###.###";
+	next i
+	print
+	next j
+rem	print
+
+rem	print
+	print "abias is: "
+	for i = 1 to anum
+	print aabias(i) using "###.###";
+	next i
+	print
+	print
+	
+	return
+rem	**************************
+
+	sub sigmoid(xx)
+	yy = 1/(1+exp(-xx))
+	return yy
+	end sub
+
+rem ****************************
+
+	sub relu(xx)
+
+	if xx < 0 then
+	yy = 0
+	elseif xx >= 0 then
+	yy = xx 
+	endif
+
+	return yy
+
+	end sub
+
+rem ****************************
